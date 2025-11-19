@@ -1,5 +1,7 @@
 import numpy as np
+import scipy as sp
 from scipy import ndimage as ndi
+from scipy.fft import dctn
 from skimage import color
 from skimage.feature import local_binary_pattern
 from skimage.filters import gabor_kernel, sobel
@@ -122,6 +124,33 @@ def get_local_binary_pattern(image, radius=1, method="uniform"):
 def crop_image(img):
     new_x_axis = np.sum(img, axis=(1,2)) != 0
     new_y_axis = np.sum(img, axis=(0,2)) != 0
-    #new_image_idx = new_x_axis.reshape(-1, 1) @ new_y_axis.reshape(1, -1)
     return img[np.argmin(new_y_axis)]
     
+# Helper function to compute average rgb of an image
+def compute_average_rgb(image: np.ndarray):
+    # Remove black pixels from tiling effect
+    non_black_pixels = np.sum(np.einsum('ijk->ij', image > 0))
+
+    # Return average image pixel rgb values
+    return np.einsum('ijk->k', image.astype(int))/(non_black_pixels)
+
+# Helper function to compute variance rgb of an image
+# Not efficient, but gets the job done
+def compute_variance_rgb(image: np.ndarray):
+    # Return average image pixel rgb values
+    return (compute_average_rgb(image**2) - compute_average_rgb(image)**2)
+
+def get_gabor_aggregate_features(image, kernel):
+    gabor_filtered_image = get_gabor_features(image, kernel)
+    var = np.var(gabor_filtered_image)
+    mean = np.mean(gabor_filtered_image)
+    return mean, var
+
+def get_encoded_gabor_features(image, kernels) -> np.ndarray:
+    feats = np.empty((len(kernels), 2), dtype=float)
+    for i, kernel in enumerate(kernels):
+        feats[i, 0], feats[i, 1] = get_gabor_aggregate_features(image, kernel)
+    return feats
+
+def get_mean_frequency(image: np.ndarray) -> np.float64:
+    return np.sqrt(np.sum(sp.ndimage.center_of_mass(np.mean(dctn(crop_image(image), axes=[0,1]), axis=2)**2)))

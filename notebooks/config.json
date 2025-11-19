@@ -1,3 +1,11 @@
 {
-    "data_dir": "../satellite-image-data"
+    "data_dir": "../satellite-image-data",
+    "feature_locs": {
+        "task_a": {
+            "gabor": "./gb_features.pkl",
+            "rgb": "./rgb_features.pkl",
+            "sobel": "./sobel_df.pkl",
+            "frequency": "./frequency_features.pkl"
+        }
+    }
 }
